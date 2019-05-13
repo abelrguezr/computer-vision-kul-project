@@ -1,0 +1,8 @@
+.idea/
+.vscode/
+VOCdevkit/
+Data/
+Models/
+Logs/
+Project-In_the_name_of_deep_learning.pdf
+__pycache__/

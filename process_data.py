@@ -1,30 +1,25 @@
 # PROJECT - CV
 # Ignacio Garrido Botella & Abel Rodriguez Romero
 import cv2
-import random
 import numpy as np
 import matplotlib.pyplot as plt
 from lxml import etree
 import os
 from skimage import io
 from skimage.transform import resize
-import keras
-from keras.datasets import mnist
-from keras.models import Model, Sequential
-from keras.layers import Input, Dense, Conv2D, MaxPooling2D, UpSampling2D, Flatten, Reshape
-from keras import regularizers
-from keras.models import load_model
+import data_utils
 
 
-#For making the NN work:
-os.environ['KMP_DUPLICATE_LIB_OK']='True'
-#Problem: https://medium.com/@valeryyakovlev/python-keras-hangs-on-fit-method-spyder-anaconda-8d555eeeb47e
+
+# #For making the NN work:
+# os.environ['KMP_DUPLICATE_LIB_OK']='True'
+# #Problem: https://medium.com/@valeryyakovlev/python-keras-hangs-on-fit-method-spyder-anaconda-8d555eeeb47e
 
 #Source: https://blog.keras.io/building-autoencoders-in-keras.html
 
 # parameters that you should set before running this script
 filter = ['aeroplane', 'car', 'chair', 'dog', 'bird']       # select class, this default should yield 1489 training and 1470 validation images
-voc_root_folder = "/Users/ignacio/Documents/Universidad/Master/Segundo/SegundoSemestre/Computer vision/Project/Data/VOCdevkit/"  # please replace with the location on your laptop where you unpacked the tarball
+voc_root_folder = "D:/Work/Tech/Uni/KUL/CV/Project/computer-vision-kul-project/VOCdevkit/"  # please replace with the location on your laptop where you unpacked the tarball
 image_size = 128    # image size that you will use for your network (input images will be resampled to this size), lower if you have troubles on your laptop (hint: use io.imshow to inspect the quality of the resampled images before feeding it into your network!)
 
 
@@ -83,88 +78,7 @@ print('%i validation images from %i classes' %(x_val.shape[0],  y_train.shape[1]
 # you will only need x_train and x_val for the autoencoder
 # you should extend the above script for the segmentation task (you will need a slightly different function for building the label images)
 
-#Randomly permutate the train/val sets:
-p_train = np.random.permutation(len(x_train))
-p_val = np.random.permutation(len(x_val))
-x_train=x_train[p_train]
-y_train=y_train[p_train]
-x_val=x_val[p_val]
-y_val=y_val[p_val]
-#Smaller sets for fast training
-x_train_small=x_train[p_train[1:100]]
-y_train_small=y_train[p_train[1:100]]
-x_val_small=x_val[p_val[1:100]]
-y_val_small=y_val[p_val[1:100]]
-
-#%%
-
-##############
-#Autoencoder:#
-##############
-
-#Source: https://ramhiser.com/post/2018-05-14-autoencoders-with-keras/
-random.seed(42)
-
-autoencoder = Sequential()
-
-# Encoder Layers
-autoencoder.add(Conv2D(8, (3, 3), activation='relu', padding='same', input_shape=(image_size, image_size, 3))) # 16 kernels of size 3x3 - The output is of size 16*size_image*size_image.
-autoencoder.add(MaxPooling2D((2, 2), padding='same'))  #Reduction in size x2.
-autoencoder.add(Conv2D(16, (3, 3), activation='relu', padding='same'))
-autoencoder.add(Conv2D(16, (3, 3), activation='relu', padding='same'))
-autoencoder.add(MaxPooling2D((2, 2), padding='same'))
-autoencoder.add(Conv2D(8, (3, 3), strides=(2,2), activation='relu', padding='same'))
-#autoencoder.add(MaxPooling2D((2, 2), padding='same'))
-#autoencoder.add(Conv2D(64, (3, 3), activation='relu', padding='same'))
-
-# Flatten encoding for visualization
-autoencoder.add(Flatten())
-autoencoder.add(Reshape((16, 16, 8)))
-
-# Decoder Layers
-#autoencoder.add(Conv2D(64, (3, 3), activation='relu', padding='same'))
-#autoencoder.add(UpSampling2D((2, 2)))
-autoencoder.add(Conv2D(8, (3, 3), activation='relu', padding='same'))
-autoencoder.add(UpSampling2D((2, 2)))
-autoencoder.add(Conv2D(16, (3, 3), activation='relu', padding='same'))
-autoencoder.add(Conv2D(16, (3, 3), activation='relu', padding='same'))
-autoencoder.add(UpSampling2D((2, 2)))
-autoencoder.add(Conv2D(8, (3, 3), activation='relu', padding='same')) # 16 kernels of size 3x3 - The output is of size 16*size_image*size_image.
-autoencoder.add(UpSampling2D((2, 2)))
-autoencoder.add(Conv2D(3, (3, 3), activation='sigmoid', padding='same'))
-
-autoencoder.summary()
-
-#%%
-#We build the model of the encoder
-encoder = Model(inputs=autoencoder.input, outputs=autoencoder.get_layer('flatten_1').output)
-
-#autoencoder.compile(optimizer='sgd', loss='mean_squared_error')
-#autoencoder.compile(optimizer='adam', loss='binary_crossentropy')
-autoencoder.compile(loss='mean_squared_error', optimizer = 'RMSprop')
-
-#%% Trainning
-autoencoder.fit(x_train, x_train, epochs=25, batch_size=64, validation_data=(x_val, x_val))
-
-#Bigger batch size -> Bigger generalization
-
-#%%
-
-img_x = x_val[1:1050]
-img = autoencoder.predict(img_x)
-
-plt.imshow(img[0])
-plt.imshow(img_x[0])
-
-#%% Save the model
-model_name = 'model_4conv_2048compression.h5'
-path = voc_root_folder[:-16]+"Models/"+model_name
-autoencoder.save(path) 
-path = voc_root_folder[:-16]+"computer-vision-kul-project/Models/"+model_name
-autoencoder.save(path) 
-
-#To load the model:
-#autoencoder = load_model(path)
-
-
-
+data_utils.save_pickle("Data/x_train.pkl",x_train)
+data_utils.save_pickle("Data/y_train.pkl",y_train)
+data_utils.save_pickle("Data/x_val.pkl",x_val)
+data_utils.save_pickle("Data/y_val.pkl",y_val)
